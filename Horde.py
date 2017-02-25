@@ -7,8 +7,10 @@ class Horde:
     numDemons = 0
 
 #defaults to 8x8 tiles with 8 tilings (assumes 2 dimensional data)
-    def createHorde(self, alphaList, gammaList, lambList, numDemons=10, numTilings=8, numTilesTotal=8*8*8, offPolList = None, targetPolicyList = None, betaList = None, rowFuncList = None, ):
+    def createHorde(self, alphaList, gammaList, lambList, numDemons=10, numTilings=8, numTilesTotal=8*8*8, offPolList = None, targetPolicyList = None, betaList = None, pavList = None, rowFuncList = None, ):
         self.numDemons = numDemons
+        if pavList is None:
+            pavList = [None] * numDemons
         if betaList is None:
             betaList = [None] *numDemons
         if offPolList is None:

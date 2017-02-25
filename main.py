@@ -23,14 +23,22 @@ pavGVF = None
 obsMan = None
 s1 = None
 s2 = None
+flag = True
 
+#Note: I am aware of the horrendous programming practice in the following method
 def pavlovianControl():
-    if pavGVF.prediction > 90:
+    global flag
+    if pavGVF.prediction > 10:
         if s2 is not None:
-
-            s2.move_angle(myLib.degToRad(obsMan.currentAngleS2 + 10))
-            s2.move_angle(obsMan.currentAngleS2)
-        else:
+            if flag:
+                s2.move_angle(myLib.degToRad(45))
+                flag = False
+                print('pav1')
+            else:
+                s2.move_angle(myLib.degToRad(-45))
+                flag = True
+                print('pav2')
+        else: #for running data from file
             print('PAVLOV CONTROL!!!!!!!!!!!!!!')
 
 def startFromFile(fileName):
@@ -47,7 +55,7 @@ def startFromFile(fileName):
     stdAlpha = 0.1/numTilings
     alphaList = [stdAlpha] * hordeSize
     betaList = [stdAlpha/10]*hordeSize
-    gammaList = [0, 0.5, 0.75, 0.9, 0.98, 0.99, 0.999, 1, 1, 1] #1 ts, 2 ts, 4ts, 10ts, 50 ts, 100ts, 1000ts, state dep, offpol, offpol
+    gammaList = [0, 0.5, 0.75, 0.9, 0.98, 0.99, 0.999, 1, 0.9, 0.9] #1 ts, 2 ts, 4ts, 10ts, 50 ts, 100ts, 1000ts, state dep, offpol, offpol
     lambList = [0.9] * hordeSize
     offPolList= [False, False, False, False, False, False, False, False, True, True]
     targetPolicyList = [1, 1, 1, 1, 1, 1, 1, 1, 1, 0] #Defines the target action for Off-policy
@@ -135,8 +143,8 @@ def startFromRobot(args, realTimeStop):
     horde.createHorde(alphaList, gammaList, lambList, hordeSize, numTilings, numTilesTotal, offPolList,
                       targetPolicyList, betaList)
 
-    pavGVF = horde.getGVF(9)
-    pavGVF.pavlovianControl = pavlovianControl
+   # pavGVF = horde.getGVF(8)
+   # pavGVF.pavlovianControl = pavlovianControl
 
     plotter = HordePlotter.HordePlotter(horde, obsMan)
 
@@ -144,7 +152,7 @@ def startFromRobot(args, realTimeStop):
     plotter.initPlot()
     numberOfActions = 0
 
-    timeEnd = time.time() + 60 * 15#mins
+    timeEnd = time.time() + 60 * 40#mins
     while (time.time() < timeEnd):
         startTime= time.time()
         currentPosRad = obsMan.currentAngle
@@ -166,7 +174,7 @@ def startFromRobot(args, realTimeStop):
 
         cumulantList = [obsMan.currentLoad]*hordeSize#myLib.normalizeLoad(s1.read_load())#myLib.radToDeg(s1.read_angle())
         cumulantList[7] = 1 #State dependant
-        if (obsMan.currentAngle > myLib.degToRad(90)):
+        if (obsMan.currentLoad > 90):
             gammaList[7] = 0
         else:
             gammaList[7] = 1
@@ -191,7 +199,7 @@ def startFromRobot(args, realTimeStop):
 
 realTimeStop = threading.Event()
 args = None
-startFromFile('obs.json')
+startFromFile('obsLong.json')
 #startFromRobot(args, realTimeStop)
 
 

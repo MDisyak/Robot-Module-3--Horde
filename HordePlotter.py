@@ -17,14 +17,14 @@ class HordePlotter:
     currentTemperature = 0.0
     currentVoltage = 0.0
     observationManager = None
-    predMinY = -300#-500
-    predMaxY = 300#500
+    predMinY = -300
+    predMaxY = 300
     obsMinY = -200
     obsMaxY = 200
     rupMinY = 0
     rupMaxY = 100
-    udeMinY = -500
-    udeMaxY = 500
+    udeMinY = 0
+    udeMaxY = 1
 
 
     def __init__(self, horde, obsMan):
@@ -32,6 +32,7 @@ class HordePlotter:
             self.observationManager = obsMan
             self.gvfList = horde.getHorde()
             self.angle = [0] * self.graphSpan
+            self.angle2 = [0] * self.graphSpan
             self.load = [0] * self.graphSpan
             self.temperature = [0] * self.graphSpan
             self.voltage = [0] * self.graphSpan
@@ -57,17 +58,32 @@ class HordePlotter:
             self.x2.append(x)
             self.x2L.append(xL)
         self.predLines = self.predictionAx.plot(self.x2, self.pred)
-        [self.angleLine, self.loadLine, self.temperatureLine, self.voltageLine] = self.obsAx.plot(x, self.angle, 'b', x, self.load, 'g', x, self.temperature, 'r', x, self.voltage, 'y')
+    #    [self.angleLine, self.loadLine, self.temperatureLine, self.voltageLine, self.angle2Line] = self.obsAx.plot(x, self.angle, 'b', x, self.load, 'g', x, self.temperature, 'r', x, self.voltage, 'y', x, self.angle2, 'p')
+        [self.angleLine, self.loadLine, self.temperatureLine, self.voltageLine] = self.obsAx.plot(x,
+                                                                                                                   self.angle,
+                                                                                                                   'b',
+                                                                                                                   x,
+                                                                                                                   self.load,
+                                                                                                                   'g',
+                                                                                                                   x,
+                                                                                                                   self.temperature,
+                                                                                                                   'r',
+                                                                                                                  x,
+                                                                                                                  self.voltage,
+                                                                                                                   'y',
+                                                                                                                )
+
         self.rupeeLines = self.rupeeAx.plot(self.x2L, self.horde.getRupee())
-        self.udeLines = self.udeAx.plot(x, self.horde.getUDE())
+        self.udeLines = self.udeAx.plot(self.x2L, self.horde.getUDE())
 
 
         #Set line labels
-        obsNames = ["angle (deg)", "load (dyna.)", "temp. (cels.)", "volt."]
+        obsNames = ["angle (deg)", "load (dyna.)", "temp. (cels.)", "volt.", 'Pavlov']
         self.angleLine.set_label(obsNames[0])
         self.loadLine.set_label(obsNames[1])
         self.temperatureLine.set_label(obsNames[2])
         self.voltageLine.set_label(obsNames[3])
+       # self.angle2Line.set_label(obsNames[4])
         predNames = ['0', '0.5', '0.75', '0.9', '0.98', '0.99', '0.999', 'State dep.', '1(off-pol)', '0(off-pol)']
         for i in range(0, 10):
             self.predLines[i].set_label(predNames[i])
@@ -129,18 +145,19 @@ class HordePlotter:
             self.udeLines[i].set_xdata(self.x2L[i])
             self.udeLines[i].set_ydata(currentUDE[-self.graphSpanL:])
 
-
-
             #get and set data for observation plot
         self.angle.append(myLib.radToDeg(self.observationManager.currentAngle))
         self.load.append(self.observationManager.currentLoad)
         self.voltage.append(self.observationManager.currentVoltage)
         self.temperature.append(self.observationManager.currentTemperature)
+        self.angle2.append(myLib.radToDeg(self.observationManager.currentAngleS2))
 
         self.angleLine.set_ydata(self.angle[-self.graphSpan:])
         self.loadLine.set_ydata(self.load[-self.graphSpan:])
         self.temperatureLine.set_ydata(self.temperature[-self.graphSpan:])
         self.voltageLine.set_ydata(self.voltage[-self.graphSpan:])
+        #self.angle2Line.set_ydata(self.angle2[-self.graphSpan:])
+
 
         self.numLearnText.set_text("# Learn Steps: " + str(self.observationManager.obsIndex))
 

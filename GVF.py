@@ -63,15 +63,16 @@ class GenValFunc:
         self.betaRupee = 0.0
 
         #Vars for UDE
-        self.deltaUDE = np.zeros(self.numTilesTotal)
+        self.deltaUDE = 0.0
         self.taoUDE = 0.0
         self.betaNotUDE = self.alpha * 10
         self.betaUDE = 0.0
         self.varUDE = 0.0
-        self.deltaN = 0
+        self.nUDE = 0
         self.deltaMean = 0.0
+        self.oldDeltaMean = 0.0
         self.deltaM2 = 0.0
-
+        self.epsilonUDE = 0.0001
     #Updates all values that can change after an action occurs
     def update(self, nextState, currentState, cumulant, lamb, gamma, action):
         self.nextState = nextState
@@ -91,6 +92,8 @@ class GenValFunc:
             self.learnOnPol()
         if not self.pavlovianControl is None:
             self.pavlovianControl()
+        self.calcRupee()
+        self.calcUDE()
 
 #Performs the learning step for on-policy GVFs using TD(lambda)
     def learnOnPol(self): #args, stoppingEvent):
@@ -107,9 +110,6 @@ class GenValFunc:
         self.prediction = self.currentStateValue
         self.predictions.append(self.prediction)
 
-       # self.verifier()
-       # self.ude()
-        self.calcRupee()
         self.numberOfLearningSteps += 1
         self.gammaCurrent = self.gammaNext
         self.timeDiff = round(time.time()-startTime,6)
@@ -117,6 +117,7 @@ class GenValFunc:
 #Performs the learning step for off-policy GVFs using GTD(lambda)
     def learnGTD(self):
         startTime = time.time()
+        alphaGTD = self.alpha #* (1-self.lamb)
        #TD ERROR BELOW
         self.currentStateValue = np.dot(self.weightVect, self.currentState)
         self.nextStateValue = np.dot(self.weightVect, self.nextState)
@@ -124,13 +125,10 @@ class GenValFunc:
         #End TD Error
 
         self.eligTrace = self.row * (self.currentState + (self.lamb * self.gammaCurrent * self.eligTrace))
-        self.weightVect += self.alpha * ((self.delta * self.eligTrace) - ((self.gammaNext * (1-self.lamb)) * np.dot(self.eligTrace, self.hWeightVect) * self.nextState))
+        self.weightVect += alphaGTD * ((self.delta * self.eligTrace) - ((self.gammaNext * (1-self.lamb)) * np.dot(self.eligTrace, self.hWeightVect) * self.nextState))
         self.hWeightVect += self.beta * ((self.delta * self.eligTrace) - (np.dot(self.hWeightVect, self.currentState) * self.currentState))
         self.prediction = self.currentStateValue
         self.predictions.append(self.prediction)
-     #   self.verifier()
-
-        self.calcRupee()
 
         self.numberOfLearningSteps += 1
         self.gammaCurrent = self.gammaNext
@@ -187,25 +185,21 @@ class GenValFunc:
 
 #Calculates Unexpected Demon Error for the GVF
     def calcUDE(self):
-        self.varUDE = self.calcVariance()
-        self.taoUDE = ((1 - self.betaNotRupee) * self.taoRupee) + self.betaNotRupee
-        self.betaUDE = self.betaNotRupee / self.taoRupee
-        self.deltaUDE = ((1 - self.betaUDE) * self.deltaUDE) + (self.betaUDE * self.delta)
-        self.ude = abs(self.deltaUDE/(math.sqrt(self.varUDE) + self.epsilonUDE))
+        self.taoUDE = ((1.0 - self.betaNotUDE) * self.taoUDE) + self.betaNotUDE
+        self.betaUDE = self.betaNotUDE / self.taoUDE
+        self.deltaUDE = ((1.0 - self.betaUDE) * self.deltaUDE) + (self.betaUDE * self.delta)
+        self.calcVariance()
+        self.ude = abs(round(self.deltaUDE,4)/(math.sqrt(round(self.varUDE,4)) + self.epsilonUDE))
 
 #This method was taken from the Online Algorithm section of "Algorithms for calculating variance" on Wikipedia, Feb 22, 2017
 #https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Online_algorithm
+#Function calculates variance in an online and incremental way
     def calcVariance(self):
-        self.n += 1
-        d = self.delta - self.deltaMean
-        self.deltaMean += d/self.deltaMean
-        d2 = self.delta - self.deltaMean
-        self.deltaM2 += d*d2
-        if self.deltaN < 2:
-            return float('nan')
-        else:
-            return self.deltaM2 / (self.deltaN-1)
-        
+        self.nUDE += 1
+        self.oldDeltaMean = self.deltaMean
+        self.deltaMean = (1.0 - self.betaUDE) * self.deltaMean + self.betaUDE * self.delta
+        self.varUDE = ((self.nUDE - 1) * self.varUDE + (self.delta - self.oldDeltaMean) * (self.delta - self.deltaMean))/self.nUDE
+
     def pavlovianControl(self):
         test = True
 
